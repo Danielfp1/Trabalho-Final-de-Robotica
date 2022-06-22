@@ -1,0 +1,21 @@
+<?xml version = "1.0" encoding="utf-8" ?>
+<cfgrules_registry xmlns="urn:abb-robotics-registry-cfg-rules">
+<entry domain="EIO" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/rules/cfg/" postpath="cir_eio_cfgrules.xml"/>
+<entry domain="MOC" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/rules/cfg/" postpath="moc_cfgrules.xml"/>
+<entry domain="EIO" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/rules/cfg/" postpath="eio_cfgrules.xml"/>
+<entry domain="SIO" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/rules/cfg/" postpath="sio_cfgrules.xml"/>
+<entry domain="SIO" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/rules/cfg/" postpath="sio_net_cfgrules.xml"/>
+<entry domain="SYS" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/rules/cfg/" postpath="cir_sys_cfgrules.xml"/>
+<entry domain="DBG" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/rules/cfg/" postpath="dbg_cfgrules.xml"/>
+<entry domain="MMC" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/rules/cfg/" postpath="cir_mmc_cfgrules.xml"/>
+<entry domain="EIO" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/enms" postpath="/en_base_cfgrules.xml"/>
+<entry domain="EIO" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/pbm" postpath="/pb_master_cfgrules.xml"/>
+<entry domain="EIO" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/pnet" postpath="/pn_driver_cfgrules.xml"/>
+<entry domain="EIO" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/pnet" postpath="/pn_slave_cfgrules.xml"/>
+<entry domain="EIO" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/ici/rules/" postpath="/ici_cfgrules.xml"/>
+<entry domain="SIO" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/rse/" postpath="rse_cfgrules.xml"/>
+<entry domain="SYS" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/mt/" postpath="cir_sys_mt_cfgrules.xml"/>
+<entry domain="PROC" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/pnt/pntkernel/rules/" postpath="/proc_pnt_cfgrules.xml"/>
+<entry domain="PROC" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/pnt/pntservices/rules/" postpath="pntloop_cfgrules.xml"/>
+<entry domain="PROC" prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/pnt/pntservices/rules/" postpath="pntprot_cfgrules.xml"/>
+</cfgrules_registry>

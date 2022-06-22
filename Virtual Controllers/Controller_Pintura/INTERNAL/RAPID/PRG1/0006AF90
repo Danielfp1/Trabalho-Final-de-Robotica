@@ -1,0 +1,445 @@
+module pnttipclean(sysmodule,viewonly)
+
+
+
+   pers num nTCIOverride := 0;
+   pers num nACIOverride := 0;
+
+   pers num nTCCycleCount := 0;
+   pers num nACCycleCount := 0;
+
+
+
+   local func string stProgramDir()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/ProgramDirectory", "Value", stValue;
+      return stValue;
+   error
+      return "HOME:/programs/";
+   endfunc
+
+
+
+   local func bool bACHasPriority()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/AppCleanHasPriority", "Value", stValue;
+      if StrMap(stValue, STR_LOWER, STR_UPPER) = "TRUE" then
+         return true;
+      else
+         return false;
+      endif
+   error
+      SkipWarn;
+      return false;
+   endfunc
+
+
+
+   local func string stTCModuleFile()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/TipCleanModuleFile", "Value", stValue;
+      return stValue;
+   error
+      SkipWarn;
+      return "";
+   endfunc
+
+
+
+   local func string stTCIntervalFile()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/TipCleanIntervalFile", "Value", stValue;
+      return stValue;
+   error
+      SkipWarn;
+      return "";
+   endfunc
+
+
+
+   local func num nExpediteBegin()
+      var string stValue;
+      var num nValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/JobQueueExpediteBegin", "Value", stValue;
+      if StrToVal(stValue, nValue) then
+         return nValue;
+      else
+         return 10001;
+      endif
+   error
+      return 10001;
+   endfunc
+
+
+
+   local func num nExpediteEnd()
+      var string stValue;
+      var num nValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/JobQueueExpediteEnd", "Value", stValue;
+      if StrToVal(stValue, nValue) then
+         return nValue;
+      else
+         return 10016;
+      endif
+   error
+      return 10016;
+   endfunc
+
+
+
+   local func string stTCIndexModule()
+      var string stFile;
+      var string stValue;
+      var num nValue;
+
+      stFile := stTCModuleFile();
+      if stFile = "" then
+         return "";
+      endif
+
+      stValue := IndexLookup(stFile, nMaterialIndex, 1);
+      return stValue;
+   error
+      SkipWarn;
+      return "";
+   endfunc
+
+
+
+   local func num nTCIndexInterval()
+      var string stFile;
+      var string stValue;
+      var num nValue;
+
+      stFile := stTCIntervalFile();
+      if stFile = "" then
+         return 0;
+      endif
+
+      stValue := IndexLookup(stFile, nMaterialIndex, 1);
+      if StrToVal(stValue, nValue) then
+         return nValue;
+      else
+         return 0;
+      endif
+   error
+      SkipWarn;
+      return 0;
+   endfunc
+
+
+
+   local func string stTCModule()
+      var string stValue;
+
+      ! Attempt to find module from index file first.
+      stValue := stTCIndexModule();
+      if stValue <> "" then
+         return stValue;
+      endif
+
+      ! If not, use "default" from configuration.
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/TipCleanModule", "Value", stValue;
+      return stValue;
+   error
+      SkipWarn;
+      return "TipClean";
+   endfunc
+
+
+
+   local func num nTCInterval()
+      var string stValue;
+      var num nValue;
+
+      if nTCIOverride <> 0 then
+         return nTCIOverride;
+      endif
+
+      ! Attempt to find interval from index file first.
+      nValue := nTCIndexInterval();
+      if nValue <> 0 then
+         return nValue;
+      endif
+
+      ! If not, use "default" from configuration.
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/TipCleanInterval", "Value", stValue;
+      if StrToVal(stValue, nValue) then
+         return nValue;
+      else
+         return 0;
+      endif
+   error
+      SkipWarn;
+      return 0;
+   endfunc
+
+
+
+   local func string stACModuleFile()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/AppCleanModuleFile", "Value", stValue;
+      return stValue;
+   error
+      SkipWarn;
+      return "";
+   endfunc
+
+
+
+   local func string stACIntervalFile()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/AppCleanIntervalFile", "Value", stValue;
+      return stValue;
+   error
+      SkipWarn;
+      return "";
+   endfunc
+
+
+
+   local func string stACIndexModule()
+      var string stFile;
+      var string stValue;
+      var num nValue;
+
+      stFile := stACModuleFile();
+      if stFile = "" then
+         return "";
+      endif
+
+      stValue := IndexLookup(stFile, nMaterialIndex, 1);
+      return stValue;
+   error
+      SkipWarn;
+      return "";
+   endfunc
+
+
+
+   local func num nACIndexInterval()
+      var string stFile;
+      var string stValue;
+      var num nValue;
+
+      stFile := stACIntervalFile();
+      if stFile = "" then
+         return 0;
+      endif
+
+      stValue := IndexLookup(stFile, nMaterialIndex, 1);
+      if StrToVal(stValue, nValue) then
+         return nValue;
+      else
+         return 0;
+      endif
+   error
+      SkipWarn;
+      return 0;
+   endfunc
+
+
+
+   local func string stACModule()
+      var string stValue;
+
+      ! Attempt to find module from index file first.
+      stValue := stACIndexModule();
+      if stValue <> "" then
+         return stValue;
+      endif
+
+      ! If not, use "default" from configuration.
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/AppCleanModule", "Value", stValue;
+      return stValue;
+   error
+      SkipWarn;
+      return "AppClean";
+   endfunc
+
+
+
+   local func num nACInterval()
+      var string stValue;
+      var num nValue;
+
+      if nACIOverride <> 0 then
+         return nACIOverride;
+      endif
+
+      ! Attempt to find interval from index file first.
+      nValue := nACIndexInterval();
+      if nValue <> 0 then
+         return nValue;
+      endif
+
+      ! If not, use "default" from configuration.
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/AppCleanInterval", "Value", stValue;
+      if StrToVal(stValue, nValue) then
+         return nValue;
+      else
+         return 0;
+      endif
+   error
+      SkipWarn;
+      return 0;
+   endfunc
+
+
+
+
+   proc TipCleanPreMain()
+      var string stSequence;
+      var num nSkippedCount;
+      var bool bCleanRan := false;
+
+      if nMaterialIndex <= 0
+         return;
+
+      if bACHasPriority() then
+         ! AppClean has priority.
+         if StrToVal(PntProtData("MCEngine.SkippedCount"), nSkippedCount) then
+            if nACInterval() > 0 then
+               if nSkippedCount > nACCycleCount
+                  Incr nACCycleCount;
+
+               if nACCycleCount >= nACInterval() then
+                  AppCleanRun;
+                  nACCycleCount := 0;  
+                  bCleanRan := true;
+               endif
+            endif
+
+            if nTCInterval() > 0 then
+               if nSkippedCount > nTCCycleCount
+                  Incr nTCCycleCount;
+
+               if nTCCycleCount >= nTCInterval() and (not bCleanRan) then
+                  TipCleanRun;
+                  nTCCycleCount := 0;  
+               endif
+            endif
+         endif
+      else
+         ! TipClean has priority.
+         if StrToVal(PntProtData("MCEngine.SkippedCount"), nSkippedCount) then
+            if nTCInterval() > 0 then
+               if nSkippedCount > nTCCycleCount
+                  Incr nTCCycleCount;
+
+               if nTCCycleCount >= nTCInterval() then
+                  TipCleanRun;
+                  nTCCycleCount := 0;  
+                  bCleanRan := true;
+               endif
+            endif
+
+            if nACInterval() > 0 then
+               if nSkippedCount > nACCycleCount
+                  Incr nACCycleCount;
+
+               if nACCycleCount >= nACInterval() and (not bCleanRan) then
+                  AppCleanRun;
+                  nACCycleCount := 0;  
+               endif
+            endif
+         endif
+      endif
+   endproc
+
+
+
+   proc TipCleanPostMain()
+      var string stSequence;
+      var bool bCleanRan := false;
+
+      if nProgramIndex >= nExpediteBegin() and
+         nProgramIndex <= nExpediteEnd() then
+         ! Skip for high priority programs.
+         return;
+      endif
+
+      if bACHasPriority() then
+         ! AppClean has priority.
+         if nACInterval() < 0 then
+            Incr nACCycleCount;
+
+            if nACCycleCount >= Abs(nACInterval()) then
+               AppCleanRun;
+               nACCycleCount := 0;  
+               bCleanRan := true;
+            endif
+         endif
+
+         if nTCInterval() < 0 and (not bCleanRan) then
+            Incr nTCCycleCount;
+
+            if nTCCycleCount >= Abs(nTCInterval()) then
+               TipCleanRun;
+               nTCCycleCount := 0;  
+            endif
+         endif
+      else
+         ! TipClean has priority.
+         if nTCInterval() < 0 then
+            Incr nTCCycleCount;
+
+            if nTCCycleCount >= Abs(nTCInterval()) then
+               TipCleanRun;
+               nTCCycleCount := 0;  
+               bCleanRan := true;
+            endif
+         endif
+
+         if nACInterval() < 0 and (not bCleanRan) then
+            Incr nACCycleCount;
+
+            if nACCycleCount >= Abs(nACInterval()) then
+               AppCleanRun;
+               nACCycleCount := 0;  
+            endif
+         endif
+      endif
+   endproc
+
+
+
+   proc TipCleanRun()
+      var string stModule;
+      var string stFilePath;
+      var loadsession ldSession;
+      stModule := stTCModule();
+      stFilePath := stProgramDir() + stModule + ".mod";
+
+      if not ModExist(stModule) then
+         Load \Dynamic, stFilePath;
+      elseif FileTimeDnum(stFilePath \ModifyTime) > ModTimeDnum(stModule) then
+         EraseModule stModule;
+         Load \Dynamic, stFilePath;
+      endif
+
+      %stModule + ":main" + stModule%;
+   endproc
+
+
+
+   proc AppCleanRun()
+      var string stModule;
+      var string stFilePath;
+      var loadsession ldSession;
+      stModule := stACModule();
+      stFilePath := stProgramDir() + stModule + ".mod";
+
+      if not ModExist(stModule) then
+         Load \Dynamic, stFilePath;
+      elseif FileTimeDnum(stFilePath \ModifyTime) > ModTimeDnum(stModule) then
+         EraseModule stModule;
+         Load \Dynamic, stFilePath;
+      endif
+
+      %stModule + ":main" + stModule%;
+   endproc
+
+
+
+endmodule

@@ -1,0 +1,174 @@
+module pntappcmd(sysmodule,viewonly)
+
+
+
+   pers num nShape1Default := 100;
+   pers num nShape2Default := 100;
+
+
+
+   local func bool bSensorInRange(string stSensor, num nTarget, num nTolerance)
+      var num nValue;
+      nValue := GetSignal(stSensor);
+      if nValue < (nTarget + nTolerance) and
+         nValue > (nTarget - nTolerance) then
+         return true;
+      else
+         return false;
+      endif
+   error
+      return false;
+   endfunc
+
+
+
+   local func bool bPerformRSCalib(string stActuator, string stSensor, string stCalibSignal, num nVerifySpeed)
+      var bool bTimeOut;
+
+      SetTMSignal stActuator, 1, 0;
+      WaitTime 0.5;
+      SetTMSignal stActuator, 0, 0;
+      WaitTime 3;
+      SetTMSignal stCalibSignal, 1, 0;
+      WaitTime 0.2;
+      SetTMSignal stCalibSignal, 0, 0;
+      WaitTime 3;
+      SetTMSignal stActuator, nVerifySpeed, 0;
+      WaitTime 5;
+      WaitUntil bSensorInRange(stSensor, nVerifySpeed, 1) \MaxTime := 10 \TimeFlag := bTimeOut;
+      SetTMSignal stActuator, 0, 0;
+
+      ! Returns true if FAILS.
+      return bTimeOut;
+   error
+      return true;
+   endfunc
+
+
+
+   proc Cmd355(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var string stActuator;
+      var string stSensor;
+      var string stCalibSignal;
+      var num nVerifySpeed;
+
+      stActuator    := "A" + ValToStr(nInParam{1}) + "Atom";
+      stSensor      := "A" + ValToStr(nInParam{1}) + "AtomRS";
+      stCalibSignal := "A" + ValToStr(nInParam{1}) + "AtomRSCal";
+
+      if GetSignal(stActuator)    = -1000000 or
+         GetSignal(stSensor)      = -1000000 or
+         GetSignal(stCalibSignal) = -1000000 then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+
+      if GetSignal("A" + ValToStr(nInParam{1}) + "Enable") <> 1 then
+         nResult := CMD_ILL_SYSMODE;
+         return;
+      endif
+
+      if nInParam{2} > 0 then
+         nVerifySpeed := nInParam{2};
+      else
+         nVerifySpeed := 20; ! Default.
+      endif
+
+      PntElog 1850, PNT_ELOG_INFO;
+
+      if bPerformRSCalib(stActuator, stSensor, stCalibSignal, nVerifySpeed) then
+         PntElog 1852, PNT_ELOG_ERROR;
+         nResult := CMD_FAILED;
+      else
+         PntElog 1851, PNT_ELOG_INFO;
+         nResult := CMD_OK;
+      endif
+   error
+      trynext;
+   endproc
+
+
+
+   proc Cmd360(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var num nShape1Set;
+      var num nShape2Set;
+      var num nAppNo;
+
+      if nInParam{1} > 0 then
+         nShape1Set := nInParam{1};
+      else
+         nShape1Set := nShape1Default;
+      endif
+
+      if nInParam{2} > 0 then
+         nShape2Set := nInParam{2};
+      else
+         nShape2Set := nShape2Default;
+      endif
+
+      if nInParam{3} > 0 then
+         nAppNo := nInParam{3};
+      else
+         nAppNo := 1;
+      endif
+
+      if GetSignal("A" + ValToStr(nAppNo) + "Enable") <> 1 then
+         nResult := CMD_ILL_SYSMODE;
+         return;
+      endif
+
+      if GetSignal("A" + ValToStr(nAppNo) + "Shape") <> -1000000 then
+         SetTMSignal "A" + ValToStr(nAppNo) + "Shape", nShape1Set, 0;
+      endif
+
+      if GetSignal("A" + ValToStr(nAppNo) + "Shape1") <> -1000000 then
+         SetTMSignal "A" + ValToStr(nAppNo) + "Shape1", nShape1Set, 0;
+      endif
+
+      if GetSignal("A" + ValToStr(nAppNo) + "Shape2") <> -1000000 then
+         SetTMSignal "A" + ValToStr(nAppNo) + "Shape2", nShape2Set, 0;
+      endif
+
+      nResult := CMD_OK;
+   error
+      nResult := CMD_FAILED;
+      return;
+   endproc
+
+
+
+   proc Cmd361(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var num nAppNo;
+
+      if nInParam{1} > 0 then
+         nAppNo := nInParam{1};
+      else
+         nAppNo := 1;
+      endif
+
+      if GetSignal("A" + ValToStr(nAppNo) + "Enable") <> 1 then
+         nResult := CMD_ILL_SYSMODE;
+         return;
+      endif
+
+      if GetSignal("A" + ValToStr(nAppNo) + "Shape") <> -1000000 then
+         SetTMSignal "A" + ValToStr(nAppNo) + "Shape", 0, 0;
+      endif
+
+      if GetSignal("A" + ValToStr(nAppNo) + "Shape1") <> -1000000 then
+         SetTMSignal "A" + ValToStr(nAppNo) + "Shape1", 0, 0;
+      endif
+
+      if GetSignal("A" + ValToStr(nAppNo) + "Shape2") <> -1000000 then
+         SetTMSignal "A" + ValToStr(nAppNo) + "Shape2", 0, 0;
+      endif
+
+      nResult := CMD_OK;
+   error
+      nResult := CMD_FAILED;
+      return;
+   endproc
+
+
+
+endmodule

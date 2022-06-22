@@ -1,0 +1,34 @@
+module posmsg(sysmodule,viewonly)
+
+   local var intnum irIPSError;
+   local var trapdata tdIPSError;
+   local var errdomain edIPSError;
+   local var num nIPSErrorNo;
+   local var errtype etIPSError;
+
+   local trap tpIPSError
+      var robtarget pCurrent;
+      GetTrapData tdIPSError;
+      ReadErrData tdIPSError, edIPSError, nIPSErrorNo, etIPSError;
+      if (nIPSErrorNo > 3000 and nIPSErrorNo < 4000) or nIPSErrorNo = 8 then
+         pCurrent := CRobT();
+         PntElog 2999, PNT_ELOG_INFO, 
+            \Arg1 := "Program: " + ValtoStr(nProgramIndex)
+            \Arg2 := "Material: " + ValtoStr(nMaterialIndex) + ", Module: " + stProgramModule
+            \Arg3 := "X: " + ValtoStr(pCurrent.trans.x)
+            \Arg4 := "Y: " + ValtoStr(pCurrent.trans.y)
+            \Arg5 := "Z: " + ValtoStr(pCurrent.trans.z);
+      endif
+   endtrap
+
+   proc PreMainPosMsg()
+      IDelete irIPSError;
+      connect irIPSError with tpIPSError;
+      IError 13, TYPE_ALL, irIPSError;
+   endproc
+
+   proc PostMainPosMsg()
+      IDelete irIPSError;
+   endproc
+
+endmodule

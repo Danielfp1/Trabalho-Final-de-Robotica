@@ -1,0 +1,29 @@
+module custmain(sysmodule)
+
+
+
+   proc InitCustMain()
+      !
+      ! Insert RAPID code for start at main here...
+      !
+   endproc
+
+
+
+   proc PreMainCustom()
+      !
+      ! This will be executed before a paint program...
+      !
+   endproc
+
+
+
+   proc PostMainCustom()
+      !
+      ! This will be executed after a paint program...
+      !
+   endproc
+
+
+
+endmodule

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<UAS_ApplicationGrants xmlns="urn:abb-robotics-uas-grants">
+<ApplicationGrants version="1">
+	<ApplicationGrant key="UAS_PNT_ENTER_PROCESS_MENU" valueType="typeBoolean" resourceID="UAS_PNT_ENTER_PROCESS_MENU" helpID="HLP_UAS_PNT_ENTER_PROCESS_MENU">
+		<StartVersion>
+				<Major>5</Major>
+				<Minor>13</Minor>
+				<Revision>1</Revision>
+			</StartVersion>
+	</ApplicationGrant>
+	<ApplicationGrant key="UAS_PNT_ENTER_BRUSH_EDITOR" valueType="typeBoolean" resourceID="UAS_PNT_ENTER_BRUSH_EDITOR" helpID="HLP_UAS_PNT_ENTER_BRUSH_EDITOR">
+		<StartVersion>
+			<Major>5</Major>
+			<Minor>13</Minor>
+			<Revision>1</Revision>
+		</StartVersion>
+	</ApplicationGrant>
+</ApplicationGrants>
+</UAS_ApplicationGrants>
+

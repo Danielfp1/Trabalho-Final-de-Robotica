@@ -1,0 +1,57 @@
+module pntexstart(sysmodule,viewonly)
+
+
+
+   local func num nExpediteBegin()
+      var string stValue;
+      var num nValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/JobQueueExpediteBegin", "Value", stValue;
+      if StrToVal(stValue, nValue) then
+         return nValue;
+      else
+         return 10001;
+      endif
+   error
+      return 10001;
+   endfunc
+
+
+
+   local func num nExpediteEnd()
+      var string stValue;
+      var num nValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/JobQueueExpediteEnd", "Value", stValue;
+      if StrToVal(stValue, nValue) then
+         return nValue;
+      else
+         return 10016;
+      endif
+   error
+      return 10016;
+   endfunc
+
+
+
+   proc ExStartReset()
+      PntExStartReset;
+   endproc
+
+
+
+   proc WaitExStart()
+      if nProgramIndex >= nExpediteBegin() and
+         nProgramIndex <= nExpediteEnd() then
+         ! Disable external start for high priority programs.
+         return;
+      endif
+
+      PntExStartSet;
+
+      while PntExStartCheck() do
+         WaitTime 0.1;
+      endwhile
+   endproc
+
+
+
+endmodule

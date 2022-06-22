@@ -1,0 +1,391 @@
+module pntcmdwrap(sysmodule,viewonly)
+
+
+
+   proc InitPntCmdWrap()
+      SetSwitchInAuto;
+      SetIPSNodesReady;
+   endproc
+
+
+
+   proc SetSwitchInAuto()
+      if GetSignal("AUTO1") = 1 and GetSignal("AUTO2") = 1 and GetSignal("doSwitchInAuto") = 0 then
+         SetTMSignal "doSwitchInAuto", 1, 0;
+      endif
+   endproc
+
+
+
+   proc SetIPSNodesReady()
+      ! Compensate for potential issue with cross connection during startup.
+      if GetSignal("NODES_UNREADY") = 0 then
+         SetTMSignal "IPSNodesReady", 1, 0;
+      endif
+   error
+      if errno = ERR_SIG_NAME or errno = ERR_SIG_INVALID then
+         SkipWarn;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd1(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+   
+      if GetSignal("sdoWriteRequest") = 1 and GetSignal("MasterGranted") = 0 then
+         ! Handle inconsistent state.
+         SetTMSignal "sdoWriteRequest", 0, 0;
+         WaitTime 0.5;
+      endif
+
+      SetTMSignal "sdoWriteRequest", 1, 0;
+      WaitUntil GetSignal("MasterGranted") = 1 \MaxTime := 2 \TimeFlag := bTimeOut;
+
+      if bTimeOut then
+         SetTMSignal "sdoWriteRequest", 0, 0;
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd2(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      if GetSignal("sdoWriteRequest") = 0 and GetSignal("MasterGranted") = 1 then
+         ! Handle inconsistent state.
+         SetTMSignal "sdoWriteRequest", 1, 0;
+         WaitTime 0.5;
+      endif
+ 
+      SetTMSignal "sdoWriteRequest", 0, 0;
+      WaitUntil GetSignal("MasterGranted") = 0 \MaxTime := 2 \TimeFlag := bTimeOut;
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd101(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      %"Cmd101CBSHook"%;
+
+      SetTMSignal "sdoResetError", 1, 0;
+      WaitUntil GetSignal("sdoRobotError") = 0 \MaxTime := 2 \TimeFlag := bTimeOut;
+      SetTMSignal "sdoResetError", 0, 0;
+      SetTMSignal "doPntRapidError", 0, 0;
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      elseif errno = ERR_REFUNKPRC or errno = ERR_CALLPROC then
+         SkipWarn;
+         trynext;
+      endif
+   endproc
+
+
+
+   proc Cmd102(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      SetTMSignal "sdoQuickStop", 1, 0;
+      WaitUntil GetSignal("sdoCycleOn") = 0 \MaxTime := 2 \TimeFlag := bTimeOut;
+      SetTMSignal "sdoQuickStop", 0, 0;
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd103(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      %"Cmd103CBSHook"%;
+
+      ! Un-pause the queue.
+      PntQueueInhibit false;
+
+      if GetSignal("sdoCycleOn") = 0 then
+         SetTMSignal "sdoMotOnStart", 1, 0;
+         WaitUntil GetSignal("sdoCycleOn") = 1 \MaxTime := 4 \TimeFlag := bTimeOut;
+         SetTMSignal "sdoMotOnStart", 0, 0;
+      endif
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      elseif errno = ERR_REFUNKPRC or errno = ERR_CALLPROC then
+         SkipWarn;
+         trynext;
+      endif
+   endproc
+
+
+
+   proc Cmd104(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      ! Pause the queue.
+      PntQueueInhibit true;
+
+      ! First stop main program...
+      SetTMSignal "sdoStop", 1, 0;
+      WaitUntil GetSignal("sdoCycleOn") = 0 \MaxTime := 2 \TimeFlag := bTimeOut;
+      SetTMSignal "sdoStop", 0, 0;
+
+      ! ...then make sure motors are on...
+      SetTMSignal "sdoMotorOn", 1, 0.1;
+      WaitUntil GetSignal("MotorIsOn") = 1 \MaxTime := 4 \TimeFlag := bTimeOut;
+      SetTMSignal "sdoMotorOn", 0, 0;
+
+      ! ...and finally attempt StartMain.
+      SetTMSignal "sdoStartMain", 1, 0.1;
+      WaitUntil GetSignal("sdoCycleOn") = 1 \MaxTime := 4 \TimeFlag := bTimeOut;
+      SetTMSignal "sdoStartMain", 0, 0;
+
+      if bTimeOut then
+         PntQueueInhibit false;
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         PntQueueInhibit false;
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd106(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      SetTMSignal "sdoAckAutoMode", 1, 0;
+      WaitUntil OpMode() = OP_AUTO \MaxTime := 2 \TimeFlag := bTimeOut;
+      SetTMSignal "sdoAckAutoMode", 0, 0;
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd107(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var num nStartMode;
+
+      nStartMode := nInParam{1};
+
+      ! Reset error.
+      Cmd101 nInParam, nResult, nOutData;
+      
+      if nStartMode = 1 or nStartMode = 2 then
+         ! Cancel
+         Cmd104 nInParam, nResult, nOutData;
+         if nResult <> CMD_OK then
+            nResult := CMD_FAILED;
+            return;
+         endif
+      endif
+
+      if nStartMode = 0 then
+         ! Compensate for too short delay between system inputs.
+         WaitTime 0.5;
+      endif
+
+      ! Start (Also starts motors)
+      Cmd103 nInParam, nResult, nOutData;
+      if nResult <> CMD_OK then
+         nResult := CMD_FAILED;
+         return;
+      endif
+
+      if not PntAppForcedOff(1) then
+         nResult := PaintCommand(302 \FireAndForget);
+      endif
+
+      if nStartMode = 2 then
+         ! Run home position program.
+         nResult := PaintCommand(400 \Param1 := 10001, \FireAndForget);
+      endif
+
+      nResult := CMD_OK;
+   endproc
+
+
+
+   proc Cmd110(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      SetTMSignal "sdoMotorOn", 1, 0;
+      WaitUntil GetSignal("MotorIsOn") = 1 \MaxTime := 4 \TimeFlag := bTimeOut;
+      SetTMSignal "sdoMotorOn", 0, 0;
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd111(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      SetTMSignal "sdoMotorOff", 1, 0;
+      WaitUntil GetSignal("MotorIsOn") = 0 \MaxTime := 2 \TimeFlag := bTimeOut;
+      SetTMSignal "sdoMotorOff", 0, 0;
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd130(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      SetTMSignal "sdoEnergySave", 1, 0;
+      WaitUntil GetSignal("ESavingBlocked") = 0 \MaxTime := 4 \TimeFlag := bTimeOut;
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd131(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      SetTMSignal "sdoEnergySave", 0, 0;
+      WaitUntil GetSignal("ESavingBlocked") = 1 \MaxTime := 4 \TimeFlag := bTimeOut;
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd140(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      SetTMSignal "sdoOpModeReqMan", 1, 0;
+      WaitUntil GetSignal("AutoModeOn") = 0 \MaxTime := 4 \TimeFlag := bTimeOut;
+      SetTMSignal "sdoOpModeReqMan", 0, 0;
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+   proc Cmd141(num nInParam{*}, inout num nResult, inout num nOutData{*})
+      var bool bTimeOut;
+
+      SetTMSignal "sdoOpModeReqAuto", 1, 0;
+      WaitUntil GetSignal("AutoModeReqAck") = 1 \MaxTime := 4 \TimeFlag := bTimeOut;
+      SetTMSignal "sdoOpModeReqAuto", 0, 0;
+
+      if bTimeOut then
+         nResult := CMD_TIMEOUT;
+      else
+         nResult := CMD_OK;
+      endif
+   error
+      if errno = ERR_SIG_NAME then
+         nResult := CMD_RES_UNAVAIL;
+         return;
+      endif
+   endproc
+
+
+
+endmodule

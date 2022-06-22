@@ -1,0 +1,77 @@
+module pntcmdloop(sysmodule,viewonly)
+
+
+
+   ! Result Codes.
+   const num CMD_OK          :=  0;
+   const num CMD_FAILED      := -1;
+   const num CMD_UNKNOWN     := -2;
+   const num CMD_NOT_MASTER  := -3;
+   const num CMD_TIMEOUT     := -4;
+   const num CMD_INVALID_VAL := -5;
+   const num CMD_ILL_SYSMODE := -6;
+   const num CMD_RES_UNAVAIL := -7;
+
+
+
+   proc main()
+      var num nCommandNo;
+      var num nInParam{10};
+      var num nResult;
+      var num nOutData{10};
+
+      InitPntCmdWrap;
+
+      ! Convenient way to run things when this task starts.
+      %"InitCustCmd"%;
+
+      while true do
+         if PntCmdRapidGet(nCommandNo, nInParam{1}, nInParam{2}, 
+            nInParam{3}, nInParam{4}, nInParam{5}, nInParam{6},
+            nInParam{7}, nInParam{8}, nInParam{9}, nInParam{10}) then
+
+            if nCommandNo > 0 then
+               ! RAPID-based paint command.
+               RunHook "PreHook", nCommandNo, nInParam;
+
+               nResult := CMD_OK;
+               nOutData := [0,0,0,0,0,0,0,0,0,0];
+               %"Cmd" + ValToStr(nCommandNo)% nInParam, nResult, nOutData;
+
+               RunHook "PostHook", nCommandNo, nInParam;
+
+               PntCmdRapidSet nResult, 
+                  nOutData{1}, nOutData{2}, nOutData{3}, nOutData{4}, nOutData{5},
+                  nOutData{6}, nOutData{7}, nOutData{8}, nOutData{9}, nOutData{10};
+            else
+               ! Hook for internal C-based paint command.
+               RunHook "PostHook", Abs(nCommandNo), nInParam;
+               PntCmdRapidSet 0,0,0,0,0,0,0,0,0,0,0;
+            endif
+         else
+            WaitTime 0.2;
+         endif
+      endwhile
+   error
+      if errno = ERR_REFUNKPRC or errno = ERR_CALLPROC then
+         nResult := CMD_UNKNOWN;
+         ! Warning message is given.
+         trynext;
+      endif
+   endproc
+
+
+
+   local proc RunHook(string stHook, num nCommandNo, num nInParam{*})
+      %"Cmd" + ValToStr(nCommandNo) + stHook% nInParam;
+   error
+      if errno = ERR_REFUNKPRC or errno = ERR_CALLPROC then
+         ! No warning message given.
+         SkipWarn;
+         trynext;
+      endif
+   endproc
+
+
+
+endmodule

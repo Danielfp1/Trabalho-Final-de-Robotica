@@ -1,0 +1,9 @@
+module pntprogmap(sysmodule,viewonly)
+
+   proc SetProgramModule()
+      stProgramModule := PntProgMapGet(nProgramIndex);
+      if stProgramModule = ""
+         stProgramModule := "m" + ValToStr(nProgramIndex);
+   endproc
+
+endmodule

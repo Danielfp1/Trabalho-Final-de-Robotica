@@ -1,0 +1,5 @@
+<?xml version = "1.0" encoding="utf-8" ?>
+<rw_services_registry>
+<rw_services prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/system/" postpath="rw_services.xml"/>
+<rw_services prepath="C:/Users/Daniel/AppData/Local/ABB/RobotWare/RobotWare_6.13.0176/options/pnt/pntservices/" postpath="rws_paint_rw_services.xml"/>
+</rw_services_registry>
