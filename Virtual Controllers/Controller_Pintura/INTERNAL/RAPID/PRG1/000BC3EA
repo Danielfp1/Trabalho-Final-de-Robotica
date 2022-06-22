@@ -1,0 +1,394 @@
+module pntloop(sysmodule,viewonly)
+
+
+
+   local const num EVENT_PRE_MAIN  := 0;
+   local const num EVENT_POST_MAIN := 1;
+   local const num EVENT_MC_MAIN   := 2;
+
+   local const num STAGE_IDLE      := 0;
+   local const num STAGE_MC_MAIN   := 1;
+   local const num STAGE_PRE_MAIN  := 2;
+   local const num STAGE_LOADING   := 3;
+   local const num STAGE_IN_MODULE := 4;
+   local const num STAGE_SEG_LOAD  := 5;
+   local const num STAGE_SEG_START := 6;
+   local const num STAGE_SEG_DONE  := 7;
+   local const num STAGE_POST_MAIN := 8;
+
+   local var signaldo doJobCompAlias;
+
+   pers string stProgramModule;
+   pers num nJobID;
+   pers num nProgramIndex;
+   pers num nMaterialIndex;
+   pers num nProgramOption1;
+   pers num nProgramOption2;
+   pers num nProgramOption3;
+   pers num nMaterialOption1;
+   pers num nMaterialOption2;
+   pers num nMaterialOption3;
+   pers num nSegmentNo;
+   pers num nOption1; ! Same as nProgramOption1, for backwards compatibility.
+   pers num nOption2; ! Same as nProgramOption2, for backwards compatibility.
+   pers num nOption3; ! Same as nProgramOption3, for backwards compatibility.
+
+
+
+   local func string stProgramDir()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/ProgramDirectory", "Value", stValue;
+      return stValue;
+   error
+      return "HOME:/programs/";
+   endfunc
+
+
+
+   local func bool bProgramCache()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/ProgramCache", "Value", stValue;
+      if StrMap(stValue, STR_LOWER, STR_UPPER) = "TRUE" then
+         return true;
+      else
+         return false;
+      endif
+   error
+      return false;
+   endfunc
+
+
+
+   local func bool bProgStaticLoad()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/ProgramStaticLoad", "Value", stValue;
+      if StrMap(stValue, STR_LOWER, STR_UPPER) = "TRUE" then
+         return true;
+      else
+         return false;
+      endif
+   error
+      return false;
+   endfunc
+
+
+
+   local func bool bProgBackupSave()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/ProgramBackupSave", "Value", stValue;
+      if StrMap(stValue, STR_LOWER, STR_UPPER) = "TRUE" then
+         return true;
+      else
+         return false;
+      endif
+   error
+      return false;
+   endfunc
+
+
+
+   local func string stLoadFailureMod()
+      var string stValue;
+      ReadCfgData "/PROC/PW_SERVICES_CONFIG/LoadFailureModule", "Value", stValue;
+      return stValue;
+   error
+      return "";
+   endfunc
+
+
+
+   local proc EventResetAndRun(num nEvent)
+      var string stRoutineName;
+      var bool bDone := false;
+      
+      PntEventReset nEvent;
+      while not bDone do 
+         stRoutineName := PntEventRun(nEvent);
+         if stRoutineName = "" then
+            bDone := true;
+         else
+            %stRoutineName%;
+         endif
+      endwhile
+   endproc
+
+
+
+   local func string stWhiteFilter(string stInputString)
+      var string stOutputString;
+      if StrLen(stInputString) = 0
+         return "";
+      for i from 1 to StrLen(stInputString) do
+         if not StrMemb(stInputString, i, STR_WHITE)
+            stOutputString := stOutputString + StrPart(stInputString, i, 1);
+      endfor
+      return stOutputString;
+   endfunc
+
+
+
+   local func bool bExtractSegment(string stLine, num nColumn, inout string stData)
+      var num nLastComma := 1;
+      var num nCurrentComma := 0;
+      var num nCurrentColumn := 0;
+      var bool bLineParseDone := false;
+      var bool bLastCommaFound := false;
+
+      while not bLineParseDone do
+         if bLastCommaFound then
+            bLineParseDone := true;
+         else
+            nCurrentComma := StrFind(stLine, nLastComma, ",");
+            if nCurrentComma > StrLen(stLine)
+               bLastCommaFound := true;
+         endif
+
+         if not bLineParseDone then
+            if nCurrentColumn = nColumn then
+               stData := stWhiteFilter(StrPart(stLine, nLastComma, nCurrentComma - nLastComma));
+               if stData = "" then
+                  return false;
+               else
+                  return true;
+               endif
+            endif
+         endif
+         Incr nCurrentColumn;
+         nLastComma := nCurrentComma + 1;
+      endwhile
+
+      return false;
+   endfunc
+
+
+
+   local proc ClearCurrentJob()
+      PntLoopSetStage STAGE_IDLE;
+      PntLoopSetJob 0,0,0,0,0,0,0,0,0;
+      PntLoopSetMod "", 0;
+
+      stProgramModule  := "";
+      nJobID           := 0;
+      nProgramIndex    := 0;
+      nMaterialIndex   := 0;
+      nProgramOption1  := 0;
+      nProgramOption2  := 0;
+      nProgramOption3  := 0;
+      nMaterialOption1 := 0;
+      nMaterialOption2 := 0;
+      nMaterialOption3 := 0;
+      nSegmentNo       := 0;
+      nOption1         := 0;
+      nOption2         := 0;
+      nOption3         := 0;
+   endproc
+
+
+
+   proc main()
+      var string stFilePath;
+      var string stJobComplete := "";
+      var string stSegmentString;
+
+      if GetSignal("JobComplete") <> -1000000 then
+         stJobComplete := "JobComplete";
+         AliasIO stJobComplete, doJobCompAlias;
+      endif
+      
+      ! Convenient way to run things when this task (re)starts.
+      Chapa_Panel_1;
+      CallInitCustMain;
+
+      ClearCurrentJob;
+      while true do
+         if PntPopProgram(nJobID, nProgramIndex, nMaterialIndex, nProgramOption1, nProgramOption2, nProgramOption3, nMaterialOption1, nMaterialOption2, nMaterialOption3) then
+            PntLoopSetJob nJobID, nProgramIndex, nMaterialIndex, nProgramOption1, nProgramOption2, nProgramOption3, nMaterialOption1, nMaterialOption2, nMaterialOption3;
+            nOption1 := nProgramOption1;
+            nOption2 := nProgramOption2;
+            nOption3 := nProgramOption3;
+
+            if nMaterialIndex > 0 then
+               PntLoopSetStage STAGE_MC_MAIN;
+               EventResetAndRun EVENT_MC_MAIN;
+            endif
+
+            if nProgramIndex > 0 then
+               stProgramModule := "m" + ValToStr(nProgramIndex); ! Can be overriden in PRE_MAIN.
+
+               PntLoopSetStage STAGE_PRE_MAIN;
+               EventResetAndRun EVENT_PRE_MAIN;
+
+               if StrFind(stProgramModule, 1, ",") > StrLen(stProgramModule) then
+                  ! No segments.
+                  PntLoopSetMod stProgramModule, -1;
+                  PntLoopSetStage STAGE_LOADING;
+                  stFilePath := stProgramDir() + stProgramModule + ".mod";
+                  if not ModExist(stProgramModule) then
+                     if bProgStaticLoad() then
+                        Load stFilePath \CheckRef;
+                     else
+                        Load \Dynamic, stFilePath \CheckRef;
+                     endif
+                  elseif FileTimeDnum(stFilePath \ModifyTime) > ModTimeDnum(stProgramModule) then
+                     if bProgBackupSave()
+                        Save stProgramModule \FilePath := stFilePath + ".bak";
+                     EraseModule stProgramModule;
+                     if bProgStaticLoad() then
+                        Load stFilePath \CheckRef;
+                     else
+                        Load \Dynamic, stFilePath \CheckRef;
+                     endif
+                  endif
+
+                  PntLoopSetStage STAGE_IN_MODULE;
+                  %stProgramModule + ":main" + stProgramModule%;
+
+                  if not bProgramCache() then
+                     if bProgBackupSave()
+                        Save stProgramModule \FilePath := stFilePath + ".bak";
+                     EraseModule stProgramModule;
+                  endif
+               else
+                  ! Using segments.
+                  PntLoopSetStage STAGE_LOADING;
+                  PntLoopSetStage STAGE_IN_MODULE;
+
+                  nSegmentNo := 0;
+                  stSegmentString := stProgramModule;
+                  while bExtractSegment(stSegmentString, nSegmentNo, stProgramModule) do
+                     PntLoopSetMod stProgramModule, nSegmentNo + 1;
+                     PntLoopSetStage STAGE_SEG_LOAD;
+
+                     stFilePath := stProgramDir() + stProgramModule + ".mod";
+                     if not ModExist(stProgramModule) then
+                        if bProgStaticLoad() then
+                           Load stFilePath \CheckRef;
+                        else
+                           Load \Dynamic, stFilePath \CheckRef;
+                        endif
+                     elseif FileTimeDnum(stFilePath \ModifyTime) > ModTimeDnum(stProgramModule) then
+                        if bProgBackupSave()
+                           Save stProgramModule \FilePath := stFilePath + ".bak";
+                        EraseModule stProgramModule;
+                        if bProgStaticLoad() then
+                           Load stFilePath \CheckRef;
+                        else
+                           Load \Dynamic, stFilePath \CheckRef;
+                        endif
+                     endif
+
+                     PntLoopSetStage STAGE_SEG_START;
+                     %stProgramModule + ":main" + stProgramModule%;
+                     PntLoopSetStage STAGE_SEG_DONE;
+
+                     if not bProgramCache() then
+                        if bProgBackupSave()
+                           Save stProgramModule \FilePath := stFilePath + ".bak";
+                        EraseModule stProgramModule;
+                     endif
+                     Incr nSegmentNo;
+                  endwhile
+               endif
+
+               PntLoopSetStage STAGE_POST_MAIN;
+               EventResetAndRun EVENT_POST_MAIN;
+
+               if stJobComplete <> "" then
+                  Reset doJobCompAlias;
+                  WaitUntil DOutput(doJobCompAlias) = 0;
+                  PulseDO \High \PLength := 2.0, doJobCompAlias;
+               endif
+            endif
+
+            ClearCurrentJob;
+         else
+            ! No job available, wait.
+            WaitTime 0.2;
+         endif
+      endwhile
+   error
+      test errno
+      case ERR_FILNOTFND, ERR_IOERROR, ERR_SYNTAX, ERR_LINKREF:
+         if stLoadFailureMod() <> "" then
+            LoadAndRunModule stLoadFailureMod();
+            ExitCycle;
+         endif
+
+      case ERR_LOADED:
+         ! Module already loaded, erase it and reload.
+         EraseModule stProgramModule;
+         SkipWarn;
+         retry;
+
+      case ERR_MODULE:
+         ! Module already unloaded, just skip.
+         SkipWarn;
+         trynext;
+
+      endtest
+   endproc
+
+
+
+   proc CallInitCustMain()
+      ! In separate procedure with own error handler.
+      %"InitCustMain"%;
+   error
+      test errno
+      case ERR_REFUNKPRC, ERR_CALLPROC:
+         ! In case InitCustMain does not exist.
+         trynext;
+      endtest
+   endproc
+
+
+
+   proc LoadAndRunModule(string stModule)
+      var string stFilePath;
+
+      stFilePath := stProgramDir() + stModule + ".mod";
+
+      if not ModExist(stModule) then
+         if bProgStaticLoad() then
+            Load stFilePath \CheckRef;
+         else
+            Load \Dynamic, stFilePath \CheckRef;
+         endif
+      elseif FileTimeDnum(stFilePath \ModifyTime) > ModTimeDnum(stModule) then
+         if bProgBackupSave()
+            Save stModule \FilePath := stFilePath + ".bak";
+         EraseModule stModule;
+         if bProgStaticLoad() then
+            Load stFilePath \CheckRef;
+         else
+            Load \Dynamic, stFilePath \CheckRef;
+         endif
+      endif
+
+      %stModule + ":main" + stModule%;
+
+      ! Unload after use, unless cache is enabled.
+      if not bProgramCache() then
+         if bProgBackupSave()
+            Save stModule \FilePath := stFilePath + ".bak";
+         EraseModule stModule;
+      endif
+   error
+      test errno
+      case ERR_LOADED:
+         ! Module already loaded, erase it and reload.
+         EraseModule stModule;
+         SkipWarn;
+         retry;
+
+      case ERR_MODULE:
+         ! Module already unloaded, just skip.
+         SkipWarn;
+         trynext;
+
+      endtest
+   endproc
+
+
+
+endmodule

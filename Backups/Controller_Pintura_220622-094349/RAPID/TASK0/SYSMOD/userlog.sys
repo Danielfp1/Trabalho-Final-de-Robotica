@@ -1,0 +1,116 @@
+module userlog(sysmodule)
+
+   
+
+   local const num MAX_LOG_SIZE   := 100000; ! Size in bytes.
+   local const num MAX_LOG_FILES  := 5;
+   local const num MAX_LOG_BUFFER := 20; ! Entries to keep before flushing.
+   
+
+
+   ! Keep persistent to survive restarts and share between tasks.
+   pers string stUserLogBuffer{MAX_LOG_BUFFER};
+   pers string stUserLogTime{MAX_LOG_BUFFER};
+   pers num nUserLogIndex;
+   pers num nUserLogFileNo;
+
+   pers bool bUserBufAddSem;
+   pers bool bUserFlushSem;
+
+
+
+   proc PntUserLog(string stMessage \Switch Flush)
+      BufferAdd stMessage;
+      if Present(Flush)
+         FlushBuffer;
+   endproc
+
+
+
+   local proc BufferAdd(string stMessage)
+      var bool bTimeOut;
+
+      WaitUntil TestAndSet(bUserBufAddSem) \MaxTime := 1 \TimeFlag := bTimeOut;
+      if bTimeOut then
+         ErrWrite "PntUserLog Error", "Buffer Add Semaphore Timeout";
+         bUserBufAddSem := false; ! Force release.
+         return;
+      endif
+
+      stUserLogBuffer{nUserLogIndex} := stMessage;
+      stUserLogTime{nUserLogIndex} := CDate() + " " + CTime();
+
+      Incr nUserLogIndex;
+      if nUserLogIndex > MAX_LOG_BUFFER then
+         ! Must be flushed.
+         FlushBuffer;
+      endif
+
+      bUserBufAddSem := false; ! Release.
+   error
+      if errno = ERR_OUTOFBND then
+         Decr nUserLogIndex;
+         retry;
+      endif
+   endproc
+
+
+
+   local proc FlushBuffer()
+      var bool bTimeOut;
+      var iodev ioLog;
+      var string stLogFile;
+
+      WaitUntil TestAndSet(bUserFlushSem) \MaxTime := 1 \TimeFlag := bTimeOut;
+      if bTimeOut then
+         ErrWrite "PntUserLog Error", "Flush Semaphore Timeout";
+         bUserFlushSem := false; ! Force release.
+         return;
+      endif
+
+      if nUserLogIndex <= 1 then
+         bUserFlushSem := false;
+         return; ! Buffer empty, nothing to flush.
+      endif
+
+      stLogFile := "HOME:/logs/user" + ValToStr(nUserLogFileNo) + ".log";
+
+      Open stLogFile, ioLog \Append;
+      for i from 1 to nUserLogIndex - 1 do ! Will normally be incremented to one above.
+         Write ioLog, stUserLogTime{i} + " " \NoNewLine;
+         Write ioLog, stUserLogBuffer{i}; 
+      endfor
+      Close ioLog;
+      nUserLogIndex := 1;
+
+      if FileSize(stLogFile) > MAX_LOG_SIZE then
+         Incr nUserLogFileNo;
+         if nUserLogFileNo > MAX_LOG_FILES
+            nUserLogFileNo := 1;
+
+         stLogFile := "HOME:/logs/user" + ValToStr(nUserLogFileNo) + ".log";
+         Open stLogFile, ioLog;
+         Close ioLog;
+      endif
+
+      bUserFlushSem := false;
+   error
+      nUserLogIndex := 1;
+      bUserFlushSem := false;
+      return;
+   endproc
+
+
+
+   proc InitUserLog()
+      bUserBufAddSem := false;
+      bUserFlushSem := false;
+      if nUserLogIndex = 0
+         nUserLogIndex := 1;
+      if nUserLogFileNo = 0
+         nUserLogFileNo := 1;
+   endproc
+
+
+
+endmodule
