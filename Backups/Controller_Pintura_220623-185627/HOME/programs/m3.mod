@@ -1,7 +1,0 @@
-MODULE M3
-
-  PROC mainM3()
-    WaitTime 10;
-  ENDPROC
-
-ENDMODULE
