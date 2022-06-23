@@ -15,29 +15,31 @@ MODULE m4
     PROC Chapa_Panel_1()
         Loop:
         Reset DOPintou;
-        WaitDI DIIniciar,1;
-        PaintL Paint_10,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
-        SetBrush 3\Y:=-100;
-        SetBrush 1\Y:=900;
-        PaintL Paint_40,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
-        PaintL Paint_50,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
-        SetBrush 3\Y:=900;
-        SetBrush 1\Y:=-100;
-        PaintL Paint_80,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
-        PaintL Paint_90,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
-        SetBrush 3\Y:=-100;
-        SetBrush 1\Y:=900;
-        PaintL Paint_120,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
-        PaintL Paint_130,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
-        SetBrush 3\Y:=900;
-        SetBrush 1\Y:=-100;
-        PaintL Paint_160,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
-        PaintL Paint_170,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
-        SetBrush 3\Y:=-100;
-        SetBrush 1\Y:=900;
-        PaintL Paint_200,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
-        Set DOPintou;
-        WaitTime 20;
+        IF TestDI (DIIniciar) THEN
+            !WaitDI DIIniciar,1;
+            PaintL Paint_10,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
+            SetBrush 3\Y:=-100;
+            SetBrush 1\Y:=900;
+            PaintL Paint_40,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
+            PaintL Paint_50,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
+            SetBrush 3\Y:=900;
+            SetBrush 1\Y:=-100;
+            PaintL Paint_80,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
+            PaintL Paint_90,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
+            SetBrush 3\Y:=-100;
+            SetBrush 1\Y:=900;
+            PaintL Paint_120,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
+            PaintL Paint_130,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
+            SetBrush 3\Y:=900;
+            SetBrush 1\Y:=-100;
+            PaintL Paint_160,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
+            PaintL Paint_170,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
+            SetBrush 3\Y:=-100;
+            SetBrush 1\Y:=900;
+            PaintL Paint_200,v800,z100,ROBOBEL926_T_TD_150\WObj:=Workobject_Chapa;
+            Set DOPintou;
+            WaitTime 20;
+        ENDIF
         GOTO Loop;
     ENDPROC
 ENDMODULE
