@@ -1,0 +1,5 @@
+2022-06-21 21:29:25,Prog:4,Mtrl:0,Brush:0,Usage:0.000,CycleTime:0.212
+2022-06-21 21:32:28,Prog:4,Mtrl:0,Brush:0,Usage:0.000,CycleTime:0.004
+2022-06-21 21:42:48,Prog:4,Mtrl:0,Brush:0,Usage:0.000,CycleTime:0.004
+2022-06-21 21:54:32,Prog:4,Mtrl:0,Brush:0,Usage:0.000,CycleTime:0.004
+2022-06-21 21:55:11,Prog:4,Mtrl:0,Brush:0,Usage:0.000,CycleTime:0.004
