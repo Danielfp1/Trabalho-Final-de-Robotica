@@ -1,0 +1,7 @@
+MODULE M2
+
+  PROC mainM2()
+    WaitTime 10;
+  ENDPROC
+
+ENDMODULE
