@@ -2,11 +2,6 @@
 <!--Comments: Settings for the FlexPendant.-->
 <FP>
   <USER name="">
-    <DATA id="ViewInManFull">
-      <PROP name="text" value="PARAM_TXT_VIEWINMANFULL" />
-      <PROP name="dll" value="" />
-      <PROP name="type" value="" />
-    </DATA>
     <DATA id="ViewInAuto">
       <PROP name="text" value="PARAM_TXT_VIEWINAUTO" />
       <PROP name="dll" value="TpsViewProductionWnd.dll" />
@@ -43,6 +38,9 @@
     <DATA id="Program Editor">
       <PROP name="HideDeclarations" value="False" />
     </DATA>
+    <DATA id="UserSettings">
+      <PROP name="RapidEditorFontIndex" value="5" />
+    </DATA>
     <DATA id="Show">
       <PROP name="default" value="CtrlName" />
     </DATA>
@@ -61,8 +59,10 @@
       <PROP name="pressed" value="" />
       <PROP name="target" value="" />
     </DATA>
-    <DATA id="UserSettings">
-      <PROP name="RapidEditorFontIndex" value="5" />
+    <DATA id="ViewInManFull">
+      <PROP name="text" value="PARAM_TXT_VIEWINMANFULL" />
+      <PROP name="dll" value="" />
+      <PROP name="type" value="" />
     </DATA>
   </USER>
 </FP>
