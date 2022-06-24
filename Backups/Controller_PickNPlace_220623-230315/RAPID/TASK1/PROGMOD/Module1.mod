@@ -34,17 +34,21 @@ MODULE Module1
         Loop:
         Reset DOLarga;
         Reset DOPega;
+        Reset DoEmMovimento;
+        Reset DoCompletou;
         IF TestDI(DIRobo2) THEN
             WaitTime 1;
             MoveL PontoPega, v1000, z50, tool0;
             WaitTime 1;
             Set DOPega;
+            Set DoEmMovimento;
             MoveL PontoEmCimaPega, v1000, z50, tool0;
             MoveL PontoDeixa, v1000, z50, tool0;
             WaitTime 1;
             Set DOLarga;
             MoveL PontoEmCimaPega, v1000, z50, tool0;
             WaitTime 2;
+            Set DoCompletou;
         ENDIF
         GOTO Loop;
     ENDPROC
